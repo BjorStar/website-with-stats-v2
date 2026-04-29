@@ -6,7 +6,7 @@ app = FastAPI()
 # In-memory user storage
 users = {}  # {"username": "password"}
 
-def page_layout(content: str, username: str | None = None):
+def page_layout(content: str, username: str | None = None, hide_create: bool = False):
     # Top-right login or username display
     if username:
         auth_box = f"""
@@ -25,6 +25,21 @@ def page_layout(content: str, username: str | None = None):
         </div>
         """
 
+    # Create account section (hidden after success)
+    if hide_create:
+        create_section = ""
+    else:
+        create_section = """
+        <div style="text-align:center; margin-top:40px;">
+            <h3>Create Account</h3>
+            <form action="/create" method="post">
+                <input name="new_username" placeholder="New Username" style="padding:5px;"><br><br>
+                <input name="new_password" type="password" placeholder="New Password" style="padding:5px;"><br><br>
+                <button type="submit" style="padding:5px;">Create Account</button>
+            </form>
+        </div>
+        """
+
     return f"""
     <html>
     <body style="font-family:Arial; margin:0; padding:0;">
@@ -35,20 +50,15 @@ def page_layout(content: str, username: str | None = None):
             {content}
         </div>
 
-        <div style="text-align:center; margin-top:40px;">
-            <h3>Create Account</h3>
-            <form action="/create" method="post">
-                <input name="new_username" placeholder="New Username" style="padding:5px;"><br><br>
-                <input name="new_password" type="password" placeholder="New Password" style="padding:5px;"><br><br>
-                <button type="submit" style="padding:5px;">Create Account</button>
-            </form>
-        </div>
+        {create_section}
     </body>
     </html>
     """
 
 @app.get("/", response_class=HTMLResponse)
-def home(user: str | None = None):
+def home(user: str | None = None, created: str | None = None):
+    if created == "1":
+        return page_layout("<h3>Account created successfully!</h3>", username=user, hide_create=True)
     return page_layout("<p>Your personalized homepage.</p>", username=user)
 
 @app.post("/create", response_class=HTMLResponse)
@@ -56,7 +66,7 @@ def create_account(new_username: str = Form(...), new_password: str = Form(...))
     if new_username in users:
         return page_layout("<h3>Username already exists.</h3>")
     users[new_username] = new_password
-    return page_layout("<h3>Account created! You can now log in.</h3>")
+    return RedirectResponse("/?created=1", status_code=302)
 
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
