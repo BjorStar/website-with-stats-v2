@@ -1,13 +1,30 @@
-from fastapi import FastAPI, Request
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+@app.get("/", response_class=HTMLResponse)
+def home():
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Single File App</title>
+        <style>
+            body { font-family: Arial; padding: 20px; }
+            h1 { color: #333; }
+        </style>
+    </head>
+    <body>
+        <h1>Hello from main.py</h1>
+        <p>This entire page is generated directly by Python.</p>
 
-@app.get("/")
-def home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+        <button onclick="alert('JS works!')">Click me</button>
 
+        <script>
+            console.log("Inline JS is working");
+        </script>
+    </body>
+    </html>
+    """
