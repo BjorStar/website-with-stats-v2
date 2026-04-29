@@ -5,8 +5,9 @@ app = FastAPI()
 
 # In-memory user storage
 users = {}  # {"username": "password"}
+account_created = set()  # users who already created an account
 
-def page_layout(content: str, username: str | None = None, hide_create: bool = False):
+def page_layout(content: str, username: str | None = None):
     # Top-right login or username display
     if username:
         auth_box = f"""
@@ -25,8 +26,8 @@ def page_layout(content: str, username: str | None = None, hide_create: bool = F
         </div>
         """
 
-    # Create account section (hidden after success)
-    if hide_create:
+    # Hide create account if user already created one
+    if username in account_created:
         create_section = ""
     else:
         create_section = """
@@ -56,9 +57,7 @@ def page_layout(content: str, username: str | None = None, hide_create: bool = F
     """
 
 @app.get("/", response_class=HTMLResponse)
-def home(user: str | None = None, created: str | None = None):
-    if created == "1":
-        return page_layout("<h3>Account created successfully!</h3>", username=user, hide_create=True)
+def home(user: str | None = None):
     return page_layout("<p>Your personalized homepage.</p>", username=user)
 
 @app.post("/create", response_class=HTMLResponse)
@@ -66,7 +65,8 @@ def create_account(new_username: str = Form(...), new_password: str = Form(...))
     if new_username in users:
         return page_layout("<h3>Username already exists.</h3>")
     users[new_username] = new_password
-    return RedirectResponse("/?created=1", status_code=302)
+    account_created.add(new_username)
+    return RedirectResponse(f"/?user={new_username}", status_code=302)
 
 @app.post("/login")
 def login(username: str = Form(...), password: str = Form(...)):
